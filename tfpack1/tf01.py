@@ -9,7 +9,7 @@ print(tf.__version__)
 
 
 # 텐서(tensor)는 배열(array)이나 행렬(matrix)과 매우 유사한 특수 자료구조
-# 텐서는 GPU나 다른 하드웨어 다속기에서 실행할 수 있따는 점만 제외하면 NumPy의 ndarray와 유사하다
+# 텐서는 GPU나 다른 하드웨어 가속기에서 실행할 수 있다는 점만 제외하면 NumPy의 ndarray와 유사하다
 # tensorflow는 numpy기반이다. 
 
 print()
