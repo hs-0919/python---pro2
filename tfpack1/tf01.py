@@ -62,7 +62,3 @@ print(tfarr.numpy())    # numpy type으로 강제 형변환
 print(np.add(tfarr, 3)) # numpy type으로 자동 형변환
 print(list(tfarr.numpy())) # list type
 
-
-
-
-

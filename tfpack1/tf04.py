@@ -88,13 +88,3 @@ print(tf.one_hot([0,1,2,3], depth=4))   # depth=4 열갯수 - 갯수 마추기
 print(tf.argmax(tf.one_hot([0,1,2,3], depth=4)).numpy())  # [0 1 2 3]
 
 
-
-
-
-
-
-
-
-
-
-

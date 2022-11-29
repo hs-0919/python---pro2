@@ -105,12 +105,3 @@ with g2.as_default():
 print('~~~~~~~~~')
 print(g2.as_graph_def())
 
-
-
-
-
-
-
-
-
-
