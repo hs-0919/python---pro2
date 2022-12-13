@@ -54,7 +54,7 @@ test_batchs = test.batch(BATCH_SIZE)
 for image_batch, label_batch in train_batchs.take(1):
     pass
 
-print(image_batch.shape) # (32, 160, 160, 3)
+print(image_batch.shape) # (32, 160, 160, 3)  - 가로 세로 160 / 3은 칼라를 의미
 
 # base model(MobileNet V2) 설계 - 대량의 데이터로 학습을 끝낸 나이스한 분류 모델
 
@@ -70,4 +70,106 @@ feature_batch = base_model(image_batch)  # 해당 이미지 특징을 반환
 base_model.trainable = False  # 계층 동결 / base_model은 학습시키지 않음
 print(base_model.summary())
 
+
+# 분류 모델링(설계)
+# base-model의 최종 출력 특징 : (None, 5, 5, 1280) <== 차원 축소해야함. 완전연결층에 맞도록, 즉 벡터화 작업이 필요
+global_averge_layer = tf.keras.layers.GlobalAveragePooling2D()  # 공간 데이터에 대한 전역 평균 풀링 작업 -> feature를 1차원 벡터화, MaxPooling2D보다 더 급격하게 feature의 수를 줄임
+feature_batch_average = global_averge_layer(feature_batch)
+print(feature_batch_average.shape) # (32, 1280)  -> 5,5가 32로 축소!
+
+prediction_layer = tf.keras.layers.Dense(1)
+prediction_batch = prediction_layer(feature_batch_average)
+print(prediction_batch.shape) # (32, 1)
+
+model = tf.keras.Sequential([
+    base_model,           # 특징 추출 베이스 모델
+    global_averge_layer,  # 출력값의 형태 변형을 위한 풀링 레이어
+    prediction_layer      # 데이터 분석을 하는 완전 연결층
+])
+
+model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.0001),
+               loss= tf.keras.losses.BinaryCrossentropy(from_logits=True),
+               metrics=['accuracy'])
+print(model.summary())
+
+
+# 학습 전 모델 성능 확인
+vali_step = 20
+loss0, accuracy0 = model.evaluate(validation_batchs, steps = vali_step) # step : 기본값은 None, 평가가 1회 완료되었을음 선언하기까지의 단계(샘플배치)의 총 갯수
+print('학습 전 모델 loss : {:.2f}'.format(loss0))
+print('학습 전 모델 accuracy : {:.2f}'.format(accuracy0))
+
+# 학습 
+init_epochs = 10
+history = model.fit(train_batchs, epochs=init_epochs, validation_data=validation_batchs)
+
+# 시각화
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+plt.figure(figsize=(8,8))
+
+plt.subplot(2,1,1)
+plt.plot(acc, label = 'train acc')
+plt.plot(val_acc, label = 'train validation acc')
+plt.legend(loc='lower right')
+plt.ylim([min(plt.ylim()), 1])
+
+plt.subplot(2,1,2)
+plt.plot(loss, label = 'train loss')
+plt.plot(val_loss, label = 'train validation loss')
+plt.legend(loc='upper right')
+plt.ylim([0, 1.0])
+
+plt.show()
+
+# 그래프를 볼 때 모델 검증 작업의 경우 학습 횟수가 늘어나도 변동이 거의 없다.
+# 학습작업의 경우 학습 횟수가 늘어나면 정확도가 조금이나마 증가하고 있다.
+# 이를 볼 때 현재 모델의 예측력이 다소 만족스럽지 못하다.
+# 그래서 미세조정(fine tuning)을 실시하기로 한다.
+
+# 전이학습 방법 중 파인 튜닝 : 전이학습이 끝난 모델에 대해 마지막 레이어의 값을 일부 조정하기.
+# 베이스 모델의 끝부분을 재학습 하기
+base_model.trainable =True  # 학습 동결 해제
+print('base model의 레이어 수 : ', len(base_model.layers))  # 54
+
+fine_tune_at = 100  # 54개만 학습
+
+for layer in base_model.layers[:fine_tune_at]:
+    layer.trainalbe = False
+    
+# 모델 컴파일 후 학습
+model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.0001 / 10), # 파인튜닝 시 학습률은 1/10로 작업
+               loss= tf.keras.losses.BinaryCrossentropy(from_logits=True),
+               metrics=['accuracy'])
+print(model.summary())
+
+# 파인튜닝 학습 
+finetune_epochs = 10
+total_epochs = init_epochs + finetune_epochs
+history_fine = model.fit(train_batchs, epochs=total_epochs, initial_epoch=history.epoch[-1], validation_data=validation_batchs)
+
+# 시각화
+acc += history_fine.history['accuracy']
+val_acc += history_fine.history['val_accuracy']
+loss += history_fine.history['loss']
+val_loss += history_fine.history['val_loss']
+
+plt.figure(figsize=(8,8))
+
+plt.subplot(2,1,1)
+plt.plot(acc, label = 'train acc')
+plt.plot(val_acc, label = 'train validation acc')
+plt.legend(loc='lower right')
+plt.ylim([min(plt.ylim()), 1])
+
+plt.subplot(2,1,2)
+plt.plot(loss, label = 'train loss')
+plt.plot(val_loss, label = 'train validation loss')
+plt.legend(loc='upper right')
+plt.ylim([0, 1.0])
+
+plt.show()
 
