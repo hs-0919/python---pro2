@@ -49,7 +49,9 @@ print(model.output)
 print(model.weights)  # kernel(가중치), bias 값 확인
 
 # history 값 시각화
+
 import matplotlib.pyplot as plt
+
 plt.plot(history.history['loss'], label='train loss')
 plt.plot(history.history['accuracy'], label='train acc')
 plt.xlabel('epochs')

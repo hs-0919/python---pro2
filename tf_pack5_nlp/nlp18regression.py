@@ -118,7 +118,7 @@ plt.legend()
 plt.show()
 
 # predict 
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score 
 pred = model.predict(test_feature, verbose=0)
 print('r2_score : ', r2_score(test_label, pred))
 
